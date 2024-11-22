@@ -5,8 +5,6 @@
 
 A fast and scalable online competitive programming contest server powered by cloud native computing.
 
-Argon is currently under heavy development as [TeamsCode](https://www.teamscode.org)'s next-generation contest platform. Not all features are implemented and it's yet far from a finished product. Our current plan is to have this contest server ready by the TeamsCode Summer 2023 Contest.
-
 ## Packages
 
 This monorepo contains 5 packages.
