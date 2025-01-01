@@ -1,5 +1,5 @@
 import { type UserPrivateProfile } from '@argoncs/types'
-import { type FastifyRequest } from 'fastify'
+import { type FastifyRequest } from 'fastify' /*=*/
 import { InternalServerError, UnauthorizedError } from 'http-errors-enhanced'
 
 export function requestParameter (request: FastifyRequest, key: string): string {

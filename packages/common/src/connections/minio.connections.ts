@@ -34,7 +34,11 @@ export async function connectMinIO (url: string): Promise<void> {
   if (!await minio.bucketExists('binaries')) {
     await minio.makeBucket('binaries')
   }
+  if (!await minio.bucketExists('checkers')) {
+    await minio.makeBucket('checkers')
+  }
   await minio.setBucketVersioning('testcases', { Status: 'Enabled' })
+  await minio.setBucketVersioning('checkers', { Status: 'Enabled' })
 }
 
 export { minio }

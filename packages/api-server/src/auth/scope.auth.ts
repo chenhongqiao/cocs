@@ -2,18 +2,23 @@ import { type FastifyReply, type FastifyRequest } from 'fastify'
 import { ForbiddenError } from 'http-errors-enhanced'
 import { requestUserProfile, requestParameter } from '../utils/auth.utils.js'
 
+/*=*/
 export function hasDomainPrivilege (scopes: string[]) {
   return async function handler (request: FastifyRequest, reply: FastifyReply) {
     const auth = requestUserProfile(request)
-
     const domainId = requestParameter(request, 'domainId')
-    const userScopes = auth.scopes
 
-    scopes.forEach((scope) => {
-      if (userScopes[domainId] == null || !Boolean(userScopes[domainId].includes(scope))) {
-        throw new ForbiddenError('Insufficient domain privilege')
-      }
-    })
+    if (auth.scopes[domainId] == null)
+      throw new ForbiddenError('Insufficient domain privilege');
+
+    const pass = scopes
+      .map(scope => auth.scopes[domainId].includes(scope))
+      .reduce((a, i) => a && i, true);
+
+      console.log('userscopes: ', auth.scopes);
+
+    if (!pass)
+      throw new ForbiddenError('Insufficient domain privilege');
   }
 }
 

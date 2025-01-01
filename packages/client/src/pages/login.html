@@ -1,0 +1,100 @@
+<h1>login</h1>
+
+<div class='space-y-2'>
+  <div id='signup-fields' class='hidden space-y-2'>
+    <input type="text" id="name" class='input' placeholder="name" value="alvin"> <br>
+    <input type="text" id="email" class='input' placeholder="email"> <br>
+    <input type="month" min="1950-01" max="2050-12" id="year" class='input' placeholder="highschool graduation month">
+  </div>
+
+  <input type="text" id="username" class='input' placeholder="username" value="alvin"> <br>
+  <input type="text" id="password" class='input' placeholder="password" value="87654321"> <br>
+
+  <div class='space-x-2'>
+    <button id="login" class='btn btn-sm'>login</button>
+    <button id="signup" class='btn btn-sm'>signup</button>
+  </div>
+</div>
+
+
+<script>
+  // signup
+  const signup = async _ => {
+
+    console.log('signup');
+
+    const body = {
+      name: document.getElementById('name').value,
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+      email: document.getElementById('email').value,
+      year: document.getElementById('year').value,
+      school:"Rock High School",
+      country:"USA",
+      region:"Pacific"
+    };
+
+    if (!body.name) return alert('no name');
+    if (!body.email) return alert('no email');
+    if (!body.username) return alert('no username');
+    if (!body.password) return alert('no password');
+    if (body.year > 2040 || body.year < 1900) return alert('high school class year should be between 1900 to 2040');
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body)
+    };
+
+    await betterFetch('/v1/users/', options) 
+      .then(res => alert("signed up"))
+  }
+
+  // login
+  document.getElementById('login').onclick = async _ => {
+
+    console.log('login');
+
+    const body = {
+      usernameOrEmail: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+    };
+
+    if (!body.usernameOrEmail) return alert('no username or email');
+    if (!body.password) return alert('no password');
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body)
+    };
+
+    await betterFetch('/v1/sessions/', options)
+      .then(_ => document.location.href = '/contests')
+  }
+
+  // trigger signup
+  const signingUp = false;
+  document.getElementById('signup').onclick = async _ => {
+
+    // if signing up, sign up then refresh
+    if (signingUp) {
+      await signup();
+
+      window.location.reload();
+      return;
+    }
+
+    // show signup & hide login 
+    document.getElementById('signup-fields').classList.remove('hidden');
+    document.getElementById('login').classList.add('hidden');
+
+    signup = true;
+  }
+  
+</script>
+

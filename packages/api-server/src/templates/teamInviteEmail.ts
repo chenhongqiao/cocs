@@ -1,0 +1,1 @@
+export const teamInviteTemplate = `team Invite Email.<br> Name: {{name}} <br> Link: {{acceptanceLink}}`

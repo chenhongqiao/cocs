@@ -11,7 +11,10 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "prepack": "tsc --build ."
+    "prepack": "tsc --build .",
+    "runDev": "bash -c 'source ../../set-env.sh && node dist/src/dev.js'",
+    "dev": "yarn prepack && yarn runDev",
+    "runTest": "bash -c 'source ../../set-env.sh && node dist/src/test.js'"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.4",

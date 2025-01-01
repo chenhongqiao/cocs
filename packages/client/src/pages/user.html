@@ -1,0 +1,20 @@
+<h1>Profile Info</h1>
+
+<b>id:</b> <span id='id'></span><br>
+<b>username:</b> <span id='username'></span><br>
+<b>name:</b> <span id='name'></span><br>
+<b>email:</b> <span id='email'></span><br>
+<b>graduation month:</b> <span id='year'></span><br>
+
+<script>
+
+const setup = async _ => {
+  document.querySelector('#id').innerText = g_user.id;
+  document.querySelector('#username').innerText = g_user.username;
+  document.querySelector('#name').innerText = g_user.name;
+  document.querySelector('#email').innerText = g_user.email;
+  document.querySelector('#year').innerText = g_user.year;
+}
+
+awaitNavBar(setup);
+</script>

@@ -1,0 +1,11 @@
+{
+  "name": "client",
+  "type": "module",
+  "packageManager": "yarn@4.5.0",
+  "dependencies": {
+    "fastify": "^5.0.0"
+  },
+  "scripts": {
+    "dev": "node start.js"
+  }
+}

@@ -1,0 +1,131 @@
+<template id='contest'>
+<div class='p-4 border-solid border-2 border-slate-200 rounded-lg'>
+  <div>
+    <span id="name" class='text-lg font-bold'></span>
+    <span id='registered' class='hidden text-sm italic text-indigo-600'>registered</span> 
+  </div>
+
+  <div id='desc' class='text-md'></div>
+
+  <div class='flex gap-8'>
+    <a id='unregister' class='hidden underline text-indigo-600'>unregister</a>
+    <a id='register' class='hidden underline text-indigo-600'>register</a>
+    <a id='enter' class='hidden underline text-indigo-600'>enter</a>
+  </div>
+</div>
+</template>
+
+<h1>Contests</h1>
+
+<div>
+You can join an upcoming contest by selecting 'register'. <br>
+You can nagivate to a registered contest once its begun selecting 'enter'
+</div>
+
+<!-- populated dynamically -->
+<h3>present</h3>
+<div id='present-contest-list' class='space-y-2'></div>
+
+<h3>upcoming</h3>
+<div id='upcoming-contest-list' class='space-y-2'></div>
+
+<h3>past</h3>
+<div id='past-contest-list' class='space-y-2'></div>
+
+
+<script>
+// generate callback function given an ID 
+const makeRegisterCallback = contestId => {
+  return async _ => {
+
+    console.log('register');
+
+    const body = { name: g_user.username };
+    const options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    };
+
+    await betterFetch(`/v1/contests/${contestId}/teams/`, options)
+      .then(res => console.log("team created"));
+
+    // refresh page
+    window.location.reload();
+  }
+}
+// generate callback function given a team
+const makeUnregisterCallback = (contest, team) => {
+  return async _ => {
+
+    console.log('unregister');
+
+    await betterFetch(`/v1/contests/${contest}/teams/${team}`, { method: 'DELETE' })
+      .then(res => console.log("team unregistered"));
+
+    // refresh page
+    window.location.reload();
+  }
+}
+
+// populate contests
+const getContests = async _ => {
+
+  const contests = await betterFetch(`/v1/contests/`)
+
+  let html = '';
+  for (const { id, name, description, startTime, endTime } of contests) {
+    
+    const e = document.querySelector('#contest').content.cloneNode(true);
+
+    e.querySelector('#name').innerText = name;
+    e.querySelector('#desc').innerText = description;
+
+    // properties
+    const registered = g_user && g_user.teams[id] !== undefined;
+    const present = startTime < Date.now() && endTime > Date.now();
+    const past = endTime < Date.now();
+    const upcoming = !past && !present;
+
+    // if logged in, show registration options
+    if (g_user) {
+      // if not registered and upcoming, show registration button
+      if (!registered && upcoming)
+        e.querySelector('#register').classList.remove('hidden')
+
+      // if registered, indicate so.
+      if (registered) 
+        e.querySelector('#registered').classList.remove('hidden')
+
+      // if registered and upcoming, allow unregister
+      if (registered && upcoming) {
+        e.querySelector('#unregister').classList.remove('hidden')
+        e.querySelector('#unregister').onclick = makeUnregisterCallback(id, g_user.teams[id])
+      }
+    }
+
+    // if not upcoming show enter (present unregistered will only show ranking)
+    if (!upcoming)
+      e.querySelector('#enter').classList.remove('hidden')
+
+    // set enter route
+    e.querySelector('#enter').href = `/contest?id=${id}`
+
+    // set register function 
+    e.querySelector('#register').onclick = makeRegisterCallback(id)
+
+    // determine contest type & list to append to
+    const list = present ? 
+      document.getElementById('present-contest-list') :
+      past ?
+        document.getElementById('past-contest-list') :
+        document.getElementById('upcoming-contest-list')
+
+    list.appendChild(e);
+  }
+}
+
+awaitNavBar(getContests)
+</script>
+
+

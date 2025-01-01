@@ -2,21 +2,28 @@ import { teamScoreCollection } from '../connections/mongodb.connections.js'
 
 export async function recalculateTeamTotalScore ({ contestId, teamId = undefined }: { contestId: string, teamId?: string }): Promise<void> {
   const query = teamId != null ? { contestId, id: teamId } : { contestId }
-  await teamScoreCollection.updateMany(query, [
-    {
-      $project: { scores: { $objectToArray: '$scores' } }
-    },
-    {
-      $set: { totalScore: { $sum: '$scores.v' } }
-    }
-  ])
 
-  await teamScoreCollection.updateMany(query, [
+  await teamScoreCollection.aggregate([
     {
-      $project: { time: { $objectToArray: '$time' } }
+      $match: query
     },
     {
-      $set: { lastTime: { $max: '$time.v' } }
+      $project: { 
+        s: { $objectToArray: '$scores' },
+        p: { $objectToArray: '$penalty' },
+      }
+    },
+    {
+      $set: { 
+        totalScore: { $sum: '$s.v' },
+        totalPenalty: { $sum: '$p.v' }
+      }
+    },
+    {
+      $unset: ['s', 'p']
+    },
+    { 
+      $merge: { into: "teamScores" } 
     }
-  ])
+  ]).toArray()
 }

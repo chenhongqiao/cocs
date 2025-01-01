@@ -39,6 +39,7 @@
     "@fastify/cors": "^8.5.0",
     "@fastify/sensible": "^5.5.0",
     "@fastify/swagger": "^8.14.0",
+    "@fastify/swagger-ui": "^4.1.0",
     "@fastify/type-provider-typebox": "^4.0.0",
     "@sendgrid/mail": "^8.1.0",
     "@sinclair/typebox": "^0.32.12",

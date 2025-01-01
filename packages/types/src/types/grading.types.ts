@@ -1,4 +1,4 @@
-import { type SubmissionLang } from './compilation.types.js'
+import { type SubmissionLang } from './compilation.types.js' /*=*/
 
 import {
   type Constraints,
@@ -8,9 +8,9 @@ import {
   SandboxRuntimeErrorSchema,
   SandboxSystemErrorSchema,
   SandboxTimeExceededSchema
-} from './judger.types.js'
+} from './judger.types.js' /*=*/
 
-import { type Static, Type } from '@sinclair/typebox'
+import { type Static, Type } from '@sinclair/typebox' /*=*/
 
 export enum GradingStatus {
   Accepted = 'AC',
@@ -20,6 +20,8 @@ export enum GradingStatus {
 export interface GradingTask {
   type: JudgerTaskType.Grading
   submissionId: string
+  problemId: string
+  checker: { objectName: string, versionId: string }
   testcase: {
     input: { objectName: string, versionId: string }
     output: { objectName: string, versionId: string }

@@ -50,3 +50,25 @@ export interface CompilingResultMessage {
   submissionId: string
   result: CompilingResult
 }
+
+export interface CompilingCheckerTask {
+  type: JudgerTaskType.CompilingChecker,
+  source: string,
+  problemId: string,
+}
+
+export const CompilingCheckerSucceededSchema = Type.Object({
+  status: Type.Literal(CompilingStatus.Succeeded),
+  checker: Type.Object({ name: Type.String(), versionId: Type.String() })
+})
+export type CompilingChekcerSucceeded = Static<typeof CompileSucceededSchema>
+
+// When using Type.Union, all children should not have addtionalProperties: false set to avoid an ajv issue
+export const CompilingCheckerResultSchema = Type.Union([CompilingCheckerSucceededSchema, CompileFailedSchema])
+export type CompilingCheckerResult = Static<typeof CompilingCheckerResultSchema>
+
+export interface CompilingCheckerResultMessage {
+  type: JudgerResultType.CompilingChecker
+  problemId: string
+  result: CompilingCheckerResult 
+}

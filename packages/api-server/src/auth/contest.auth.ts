@@ -33,6 +33,16 @@ export async function contestBegan (request: FastifyRequest, reply: FastifyReply
   }
 }
 
+export async function contestEnded (request: FastifyRequest, reply: FastifyReply) {
+  const contestId = requestParameter(request, 'contestId')
+
+  const contest = await fetchContest({ contestId })
+  const now = new Date()
+  if ((new Date(contest.endTime)).getTime() > now.getTime()) {
+    throw new ForbiddenError('Contest has not ended')
+  }
+}
+
 export async function contestNotBegan (request: FastifyRequest, reply: FastifyReply) {
   const contestId = requestParameter(request, 'contestId')
 
