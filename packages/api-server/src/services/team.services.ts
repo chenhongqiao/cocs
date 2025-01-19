@@ -1,9 +1,10 @@
 import { mongoClient, submissionCollection, teamCollection, teamInvitationCollection, teamScoreCollection, userCollection } from '@argoncs/common'
+import { sendEmail } from './emails.services.js'
 import { type TeamInvitation, type NewTeam, type Team, type TeamMembers } from '@argoncs/types'
 import { ConflictError, MethodNotAllowedError, NotFoundError } from 'http-errors-enhanced'
 import { nanoid } from 'nanoid'
 import gravatarUrl from 'gravatar-url'
-import { USER_CACHE_KEY, deleteCache } from './cache.services.js'
+import { USER_CACHE_KEY, deleteCache } from '@argoncs/common'
 
 export async function createTeam ({ newTeam, contestId, userId }: { newTeam: NewTeam, contestId: string, userId: string }): Promise<{ teamId: string }> {
   const id = nanoid()
@@ -30,7 +31,7 @@ export async function createTeam ({ newTeam, contestId, userId }: { newTeam: New
       await userCollection.updateOne({ id: userId },
         { $set: { [`teams.${contestId}`]: id } }, { session })
 
-      await teamScoreCollection.insertOne({ id, contestId, scores: {}, time: {}, lastTime: 0, totalScore: 0 })
+      await teamScoreCollection.insertOne({ id, contestId, scores: {}, penalty: {},  time: {}, totalScore: 0, totalPenalty: 0})
     })
   } finally {
     await session.endSession()
@@ -82,7 +83,27 @@ export async function createTeamInvitation ({ teamId, contestId, userId }: { tea
   if (team == null) {
     throw new NotFoundError('Team not found')
   }
+  // Abort if an invite to user already exists
+  if (await teamInvitationCollection.findOne({ userId }) != null) {
+    throw new ConflictError('Invite to user already exists')
+  }
+
   await teamInvitationCollection.insertOne({ id, userId, teamId, contestId, createdAt: (new Date()).getTime() })
+
+  // Send email if user has verified email
+  const { email } = user
+  if (email != null) {
+    await sendEmail({
+      to: email,
+      template: 'inviteEmail',
+      subject: 'Pending Invite',
+      values: {
+        name: user.name,
+        acceptanceLink: `https://contest.teamscode.org/users/${user.id}/invitations/${id}`
+      }
+    })
+  }
+
   return { invitationId: id }
 }
 
@@ -101,6 +122,7 @@ export async function deleteTeamInvitation ({ teamId, contestId, invitationId }:
 export async function completeTeamInvitation ({ invitationId, userId }: { invitationId: string, userId: string }): Promise<{ modified: boolean }> {
   const session = mongoClient.startSession()
   let modifiedCount = 0
+
   try {
     await session.withTransaction(async () => {
       const invitation = await teamInvitationCollection.findOne({ id: invitationId }, { session })
@@ -116,15 +138,24 @@ export async function completeTeamInvitation ({ invitationId, userId }: { invita
       if (user == null) {
         throw new NotFoundError('User not found')
       }
-      if (user.teams[contestId] != null || user.teams[contestId] !== teamId) {
+      if (user.teams[contestId] != null && user.teams[contestId] !== teamId) {
         throw new ConflictError('User is already a member of another team for this contest')
       }
 
-      const { modifiedCount: modifiedUser } = await userCollection.updateOne({ id: userId }, { $set: { [`teams.${contestId}`]: teamId } }, { session })
+      const { modifiedCount: modifiedUser } = await userCollection.updateOne(
+        { id: userId },
+        { $set: { [`teams.${contestId}`]: teamId } },
+        { session })
       modifiedCount += Math.floor(modifiedUser)
 
-      const { modifiedCount: modifiedTeam } = await teamCollection.updateOne({ id: teamId, contestId }, { $addToSet: { members: userId } }, { session })
+      const { modifiedCount: modifiedTeam } = await teamCollection.updateOne(
+        { id: teamId, contestId },
+        { $addToSet: { members: userId } },
+        { session })
       modifiedCount += Math.floor(modifiedTeam)
+
+      // Delete invitation
+      await teamInvitationCollection.deleteOne({ id: invitationId })
     })
   } finally {
     await session.endSession()
@@ -133,6 +164,7 @@ export async function completeTeamInvitation ({ invitationId, userId }: { invita
   if (modified) {
     await deleteCache({ key: `${USER_CACHE_KEY}:${userId}` })
   }
+
   return { modified }
 }
 

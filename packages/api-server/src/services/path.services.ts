@@ -1,6 +1,6 @@
 import { contestCollection, userCollection } from '@argoncs/common'
 import { NotFoundError } from 'http-errors-enhanced'
-import { CONTEST_PATH_CACHE_KEY, USER_PATH_CACHE_KEY, fetchCacheUntilLockAcquired, releaseLock, setCache } from './cache.services.js'
+import { CONTEST_PATH_CACHE_KEY, USER_PATH_CACHE_KEY, fetchCacheUntilLockAcquired, releaseLock, setCache } from '@argoncs/common'
 
 export async function contestIdByPath ({ contestPath }: { contestPath: string }): Promise<string> {
   const cache = await fetchCacheUntilLockAcquired<string>({ key: `${CONTEST_PATH_CACHE_KEY}:${contestPath}` })

@@ -1,0 +1,365 @@
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.5/ace.min.js" integrity="sha512-NIDAOLuPuewIzUrGoK5fXxowwGDm0DFJhI5TJPyTP6MeY2hUcCSKJr54fecQTEZ8kxxEO2NBrILQSUl4qZ37FA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+<h1>Argon Admin: Contest Viewer</h1>
+
+<input type="text" id="username" placeholder="username" value="shine"> <br>
+<input type="text" id="password" placeholder="password" value="12345678"> <br>
+<button id="login">login</button>
+
+<p>UserID: <b id='userId'>NA</b> </p>
+<p>SessionID: <b id='sessionId'>NA</b> </p>
+
+<h2>Domains</h2>
+<button id='domain-get'>get</button>
+<div id='domain-list'></div>
+
+<h2>Contests</h2>
+<button id='contest-get'>get</button>
+<div id='contest-list'></div>
+
+<h2>Participants</h2>
+<button id='participants-print'>get (print in console)</button>
+<button id='participants-download'>get (JSON download)</button>
+
+<h2>Ranking</h2>
+<button id='ranklist-get'>get</button>
+<button id='ranklist-download'>JSON download</button>
+
+<div id='ranklist-box' class='hidden'>
+  <div id='ranklist-list'>
+    <table>
+      <thead>
+        <th>rank</th>
+        <th>name</th>
+        <th>score</th>
+        <th>penalty</th>
+
+        <!-- problem column template -->
+        <template>
+        <th class='templated'><span id='name'></span></th>
+        </template>
+      </thead>
+      <tbody></tbody>
+
+      <!-- Ranklist row template -->
+      <template id='ranklist-row-template'>
+      <tr id='row'>
+        <td id='rank'></td>
+        <td id='name'></td>
+        <td id='score'></td>
+        <td id='penalty'></td>
+        <template id='problem-score-template'>
+          <td>
+            <span id='status'></span>
+          </td>
+        </template>
+      </tr>
+      </template>
+    </table>
+  </div>
+</div>
+
+
+
+<h2>Submissions</h2>
+<button id='submission-get'>get</button>
+<div id='submission' class='hidden'>
+  <table class='table-fixed w-full'>
+    <thead class='spacing-4'>
+      <th>date</th>
+      <th>user</th>
+      <th>problem</th>
+      <th>status</th>
+      <th>score</th>
+    </thead>
+    <!-- Submission row template -->
+    <template id='submission-template'>
+    <tr id='row'>
+      <td id='date'></td>
+      <td id='user'></td>
+      <td id='problem'></td>
+      <td id='status'></td>
+      <td id='score'></td>
+    </tr>
+    </template>
+    <tbody>
+    </tbody>
+  </table>
+</div>
+
+<h2>Submission Details</h2>
+<div id='detail'>
+  <span class='italic'>id: <span id='id'></span></span> <br>
+  <span id='date'></span><br>
+  status: <span id='status' class='font-bold'></span> <br>
+  score: <span id='score' class='font-bold'></span> pts <br>
+  for <span id='problem' class='font-bold'></span> <br>
+  <div id='log' class='hidden'>
+    Judger Message: <br>
+    <pre></pre>
+  </div>
+  <div id='source' style='height: 600px; width: 800px;'></div>
+  <div id='testcase-list'></div>
+  <template>
+    <div class='flex flex-wrap w-full border-2 rounded-md py-2 my-2 divide-x-2 text-center'>
+      <div id='status' class='font-bold basis-10'></div> 
+      <div class='basis-20'><span id='time'></span> ms</div> 
+      <div class='basis-20'><span id='memory'></span></div> 
+      <div id='message' class='px-2 text-left'></div> 
+    </div>
+  </template>
+</div>
+
+
+
+
+
+<script>
+let getUserId = _ => undefined;
+
+const getDomainId = _ => {let e = document.querySelector('input[name="domain-radio"]:checked'); return e ? e.value : undefined;};
+const getContestId = _ => {let e = document.querySelector('input[name="contest-radio"]:checked'); return e ? e.value : undefined;};
+
+const betterFetch = (url, options) => 
+  fetch(url, options)
+    .then(async res => {
+      if (res.status >= 200 && res.status < 300) {
+        const contentType = res.headers.get("content-type");
+        return (!contentType || !contentType.includes("application/json")) ? 
+          res : res.json()
+      }
+      throw await res.json()
+    })
+    .catch(err => {
+      const msg = `Got ${err.statusCode}: ${err.error}, ${err.message}`;
+      console.error(msg);
+      alert(msg);
+      throw err
+    })
+
+
+document.getElementById('login').onclick = async _ => {
+
+  console.log('login');
+
+  const body = {
+    usernameOrEmail: document.getElementById('username').value,
+    password: document.getElementById('password').value,
+  };
+
+  if (!body.usernameOrEmail) return alert('no username or email');
+  if (!body.password) return alert('no password');
+
+  const options = {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body)
+  };
+
+  await betterFetch('/v1/sessions/', options)
+    .then(({userId, sessionId}) => {
+      document.getElementById('userId').innerText = userId;
+      document.getElementById('sessionId').innerText = sessionId;
+      getUserId = () => userId;
+    })
+}
+
+document.getElementById('domain-get').onclick = async _ => {
+
+  console.log('domain-get');
+
+  if (getUserId() === undefined) return alert('not logged in');
+
+  const { scopes } = await betterFetch(`/v1/users/${getUserId()}/profiles/private`)
+
+  let html = '';
+  for (const domainId of Object.keys(scopes)) {
+    const { name, id } = await betterFetch(`/v1/domains/${domainId}`)
+
+    html += `
+    <div>
+    <input type='radio' name='domain-radio' value='${id}'>
+    <label for='${id}'><b>${name}</b>: (<i>${id}</i>)</label>
+    </div>`
+  }
+
+  document.getElementById('domain-list').innerHTML = html;
+}
+
+document.getElementById('contest-get').onclick = async _ => {
+
+  console.log('contest-get');
+
+  if (getDomainId() === undefined) return alert('no domain selected');
+
+  const res = await betterFetch(`/v1/domains/${getDomainId()}/contests/`);
+
+  let html = '';
+  for (const { name, id, published } of res) {
+    html += `
+    <div>
+    <input type='radio' name='contest-radio' value='${id}'>
+    <label for='${id}'><b>${name}</b>: (<i>${id}</i>): (${published ? 'published' : 'unpublished'})</label>
+    </div>`
+  }
+
+  document.getElementById('contest-list').innerHTML = html;
+}
+
+document.getElementById('participants-print').onclick = async _ => {
+
+  console.log('participants-print');
+
+  if (getContestId() === undefined) return alert('no contest selected');
+
+  const res = await betterFetch(`/v1/contests/${getContestId()}/all-participants`)
+    .then(res => res.json());
+  console.log(res);
+}
+
+document.getElementById('participants-download').onclick = async _ => {
+
+  console.log('participants-download');
+
+  if (getContestId() === undefined) return alert('no contest selected');
+
+  const a = document.createElement('a')
+  a.href = `/v1/contests/${getContestId()}/all-participants`;
+  a.download = 'participants.json'; 
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+document.getElementById('ranklist-get').onclick = async _ => {
+  
+  console.log('ranklist-get');
+
+  if (getContestId() === undefined) return alert('no contest selected');
+
+  document.querySelector('#ranklist-box tbody').innerHTML = '';
+  document.querySelectorAll('#ranklist-box .templated').forEach(e => e.remove());
+
+  const { ranklist, problems } = 
+    await betterFetch(`/v1/contests/${getContestId()}/ranklist`);
+
+  // ranklist table header
+  for (const problem of problems) {
+    const e = document.querySelector('#ranklist-box thead template').content.cloneNode(true);
+
+    e.querySelector('#name').innerText = problem.name;
+
+    document.querySelector('#ranklist-box thead tr').appendChild(e);
+  }
+
+  // ranklist table body
+  for (const [rank, { name, id, totalScore: score, totalPenalty: penalty, scores }] of ranklist.entries()) {
+    const e = document.querySelector('#ranklist-row-template').content.cloneNode(true);
+
+    e.querySelector('#rank').innerText = rank+1;
+    e.querySelector('#name').innerText = name;
+    e.querySelector('#score').innerText = score.toFixed(2);
+    e.querySelector('#penalty').innerText = penalty.toFixed(2);
+
+    // problem status
+    for (const problem of problems) {
+      const q = e.querySelector('template').content.cloneNode(true);
+      q.querySelector('td').id = problem.id 
+      q.querySelector('#status').innerText = scores[problem.id] !== undefined ? scores[problem.id].toFixed(2) : '-';
+
+      e.querySelector('tr').appendChild(q);
+    }
+
+    document.querySelector('#ranklist-box tbody').appendChild(e)
+  }
+}
+
+document.getElementById('ranklist-download').onclick = async _ => {
+
+  console.log('ranklist-download');
+
+  if (getContestId() === undefined) return alert('no contest selected');
+
+  const a = document.createElement('a')
+  a.href = `/v1/contests/${getContestId()}/ranklist`;
+  a.download = 'ranklist.json'; 
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+document.getElementById('submission-get').onclick = async _ => {
+  if (getContestId() === undefined) return alert('no contest selected');
+
+  const submissions = await betterFetch(`/v1/contests/${getContestId()}/all-submissions`)
+    .then(res => res.json());
+
+  document.querySelector('#submission tbody').innerHTML = '';
+  for (const { problem, createdAt, status, score, testcases, id, log, source, language, user } of submissions) 
+  {
+    const t = document.querySelector('#submission-template').content.cloneNode(true);
+    const e = t.querySelector('#row');
+
+    // row
+    e.querySelector('#date').innerText = (new Date(createdAt)).toLocaleString();
+    e.querySelector('#problem').innerText = problem.name;
+    e.querySelector('#user').innerText = user.name;
+    e.querySelector('#status').innerText = status;
+    e.querySelector('#score').innerText = score !== undefined ? score.toFixed(2) : '-';
+
+    // onclick: toggle details
+    e.onclick = _ => {
+      const b = document.querySelector(`#detail`);
+
+      // reset
+      b.querySelector('#testcase-list').innerHTML = '';
+      b.querySelector('#log').classList.add('hidden');
+
+      // set props
+      b.querySelector('#id').innerText = id;
+      b.querySelector('#date').innerText = (new Date(createdAt)).toLocaleString();
+      b.querySelector('#problem').innerText = problem.name;
+      b.querySelector('#status').innerText = status; 
+      b.querySelector('#score').innerText = score !== undefined ? score.toFixed(2) : '-';
+      b.querySelector('#log pre').innerText = log ?? '';
+      b.querySelector('#log').classList.remove('hidden');
+
+      // source
+      const editor = ace.edit(b.querySelector('#source'), {
+        mode: `ace/mode/${language == 'C++' ? 'c_cpp' : 'python'}`,
+        selectionStyle: "text"
+      })
+      editor.setValue(source);
+      editor.setReadOnly(true);
+
+
+      // testcase rows
+      for (let { score, result } of testcases ?? []) {
+        const r = b.querySelector('template').content.cloneNode(true);
+
+        if (result == undefined)
+          result = {}
+        
+        r.querySelector('#status').innerText = result.status ?? '-';
+        r.querySelector('#status').style.color = 
+          result.status == "AC" ? 'green' :
+          result.status == "WA" ? 'red' :
+          result.status == "TLE" ? 'red' :
+          result.status == "MLE" ? 'red' :
+          result.status == "SE" ? 'blue' : 'black';
+        
+        r.querySelector('#time').innerText = result.wallTime ?? '-';
+        r.querySelector('#memory').innerText = 
+          result.memory ?  result.memory > 1000 ? `${Math.floor(result.memory/1000)} MB` : `${result.memory} KB` : '-'
+        r.querySelector('#message').innerText = result.message ?? '-'
+
+        b.querySelector('#testcase-list').appendChild(r);
+      }
+    }
+
+    document.querySelector('#submission tbody').appendChild(t)
+  }
+}
+</script>

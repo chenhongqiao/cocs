@@ -3,11 +3,13 @@ import { type Static, Type } from '@sinclair/typebox'
 export enum JudgerTaskType {
   Compiling = 'Compiling',
   Grading = 'Grading',
+  CompilingChecker = 'CompilingChecker'
 }
 
 export enum JudgerResultType {
   Compiling = 'Compiling',
   Grading = 'Grading',
+  CompilingChecker = 'CompilingChecker'
 }
 
 export enum SandboxStatus {

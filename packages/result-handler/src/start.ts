@@ -1,7 +1,8 @@
 import { connectMongoDB, connectRabbitMQ, connectRanklistRedis, deadResultsQueue, deadTasksQueue, judgerResultsQueue, rabbitMQ, sentry } from '@argoncs/common'
-import { type CompilingResultMessage, type CompilingTask, type GradingResultMessage, type GradingTask, JudgerResultType } from '@argoncs/types'
+import { type CompilingResultMessage, type CompilingTask, type GradingResultMessage, type GradingTask, type CompilingCheckerTask, JudgerResultType, CompilingCheckerResultMessage, JudgerTaskType } from '@argoncs/types'
 import assert from 'assert'
-import { completeGrading, handleCompileResult, handleGradingResult } from './services/result.services.js'
+import { completeGrading, handleCompileCheckerResult, handleCompileResult, handleGradingResult } from './services/result.services.js'
+/*=*/
 
 sentry.init({
   dsn: 'https://f56d872b49cc4981baf851fd569080cd@o1044666.ingest.sentry.io/450531102457856',
@@ -11,60 +12,84 @@ sentry.init({
 
 export async function startHandler (): Promise<void> {
   assert(process.env.RABBITMQ_URL != null)
-  await connectRabbitMQ(process.env.RABBITMQ_URL)
   assert(process.env.MONGO_URL != null)
-  await connectMongoDB(process.env.MONGO_URL)
   assert(process.env.RANKLISTREDIS_URL != null)
+
+  await connectRabbitMQ(process.env.RABBITMQ_URL)
+  await connectMongoDB(process.env.MONGO_URL)
   await connectRanklistRedis(process.env.RANKLISTREDIS_URL)
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   await rabbitMQ.consume(judgerResultsQueue, async (message) => {
-    if (message != null) {
-      try {
-        const resultMessage: CompilingResultMessage | GradingResultMessage = JSON.parse(message.content.toString())
+    console.log('judger result queue consumed');
+    if (message == null) 
+      return;
 
-        if (resultMessage.type === JudgerResultType.Compiling) {
-          await handleCompileResult(resultMessage.result, resultMessage.submissionId)
-        } else if (resultMessage.type === JudgerResultType.Grading) {
-          await handleGradingResult(resultMessage.result, resultMessage.submissionId, resultMessage.testcaseIndex)
-        } else {
-          throw Error('Invalid result type')
-        }
+    try {
+      const result: CompilingCheckerResultMessage | CompilingResultMessage | GradingResultMessage = 
+        JSON.parse(message.content.toString())
 
-        rabbitMQ.ack(message)
-      } catch (err) {
-        sentry.captureException(err)
-        rabbitMQ.reject(message, false)
-      }
+      if (result.type === JudgerResultType.Compiling)
+        await handleCompileResult(result.result, result.submissionId)
+
+      else if (result.type === JudgerResultType.Grading)
+        await handleGradingResult(result.result, result.submissionId, result.testcaseIndex)
+
+      else if (result.type === JudgerResultType.CompilingChecker)
+        await handleCompileCheckerResult(result.result, result.problemId)
+
+      else 
+        throw Error('Invalid result type')
+
+      rabbitMQ.ack(message)
+
+    } catch (err) {
+      console.error(err)
+      rabbitMQ.reject(message, false)
     }
   })
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   await rabbitMQ.consume(deadResultsQueue, async (message) => {
-    if (message != null) {
-      try {
-        const letter: CompilingResultMessage | GradingResultMessage = JSON.parse(message.content.toString())
+    console.log('dead results queue consumed')
+    if (message == null) 
+      return;
+    try {
+      const result: CompilingCheckerResultMessage | CompilingResultMessage | GradingResultMessage =
+        JSON.parse(message.content.toString())
+      console.log({ result });
 
-        await completeGrading(letter.submissionId, 'One or more of the grading results failed to be processed')
-        rabbitMQ.ack(message)
-      } catch (err) {
-        sentry.captureException(err)
-        rabbitMQ.reject(message, false)
-      }
+      if (result.type === JudgerResultType.CompilingChecker)
+        console.log('checker compilation results failed to be processed with:\n', result.result)
+      else 
+        await completeGrading(result.submissionId, 'One or more of the grading results failed to be processed')
+      rabbitMQ.ack(message)
+    } catch (err) {
+      console.error(err)
+      rabbitMQ.reject(message, false)
     }
   })
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
   await rabbitMQ.consume(deadTasksQueue, async (message) => {
-    if (message != null) {
-      try {
-        const letter: CompilingTask | GradingTask = JSON.parse(message.content.toString())
-        await completeGrading(letter.submissionId, 'One or more of the grading tasks failed to complete')
-        rabbitMQ.ack(message)
-      } catch (err) {
-        sentry.captureException(err)
-        rabbitMQ.reject(message, false)
-      }
+    console.log('dead tasks queue consumed')
+    if (message == null) 
+      return;
+
+    try {
+      const task: CompilingTask | CompilingCheckerTask | GradingTask = JSON.parse(message.content.toString())
+      console.log({ task });
+
+      if (task.type === JudgerTaskType.CompilingChecker) 
+        console.log('checker compilation task rejected');
+      else
+        await completeGrading(task.submissionId, 'One or more of the grading tasks failed to complete')
+      rabbitMQ.ack(message)
+    } catch (err) {
+      console.error(err)
+      rabbitMQ.reject(message, false)
     }
   })
+
+  console.log('started')
 }

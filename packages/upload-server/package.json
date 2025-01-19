@@ -12,7 +12,8 @@
   },
   "scripts": {
     "prepack": "tsc --build .",
-    "dev": "yarn prepack && node dist/src/dev.js"
+    "runDev": "bash -c 'source ../../set-env.sh && node dist/src/dev.js'",
+    "dev": "yarn prepack && yarn runDev"
   },
   "devDependencies": {
     "typescript": "^5.3.3"
@@ -21,11 +22,12 @@
     "@argoncs/common": "workspace:*",
     "@chenhongqiao/fastify-http-errors-enhanced": "^4.1.0",
     "@fastify/auth": "^4.4.0",
+    "@fastify/cors": "^8.5.0",
     "@fastify/multipart": "^8.1.0",
     "@fastify/sensible": "^5.5.0",
+    "@fastify/swagger": "^9.0.0",
     "@fastify/type-provider-typebox": "^4.0.0",
     "@sinclair/typebox": "^0.32.12",
-    "fastify": "^4.25.2",
     "http-errors-enhanced": "^2.0.3"
   },
   "type": "module"

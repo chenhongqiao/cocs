@@ -32,8 +32,9 @@ export const TeamScoreSchema = Type.Object({
   id: Type.String(),
   contestId: Type.String(),
   scores: Type.Record(Type.String(), Type.Number()),
+  penalty: Type.Record(Type.String(), Type.Number()),
   time: Type.Record(Type.String(), Type.Number()),
   totalScore: Type.Number(),
-  lastTime: Type.Number()
+  totalPenalty: Type.Number(),
 })
 export type TeamScore = Static<typeof TeamScoreSchema>

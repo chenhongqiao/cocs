@@ -1,0 +1,137 @@
+/*! purgecss start ignore */
+html {
+  background-color: white;
+}
+
+html.dark {
+  @apply text-dark-high-emphasis bg-dark-surface min-h-screen;
+}
+
+html.transitioning-color-scheme,
+html.transitioning-color-scheme * {
+  transition-duration: 0ms !important;
+}
+
+/* Scrollbar styles */
+/* Thanks https://joshwcomeau.com/! */
+@media (orientation: landscape) {
+  ::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+    background-color: theme('colors.gray.200');
+  }
+  ::-webkit-scrollbar-track {
+    border-radius: 3px;
+    background-color: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background-color: theme('colors.gray.500');
+    border: 2px solid theme('colors.gray.200');
+  }
+  .dark ::-webkit-scrollbar {
+    background-color: theme('colors.gray.800');
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    border: 2px solid theme('colors.gray.800');
+    background-color: theme('colors.gray.400');
+  }
+}
+
+.spoiler-body > pre {
+  margin-left: -1rem !important;
+  margin-right: -1rem !important;
+}
+
+.spoiler-body > pre:first-child {
+  margin-top: -2rem !important;
+}
+.spoiler-body > pre:last-child {
+  margin-bottom: -2rem !important;
+}
+.tailwind-alert > * + * {
+  @apply mb-2;
+}
+.tailwind-alert p {
+  @apply mb-2;
+}
+.tailwind-alert ul {
+  @apply mb-2;
+}
+.tailwind-alert ul li {
+  @apply mb-1;
+}
+.tailwind-alert > ul:last-child li:last-child {
+  @apply mb-0;
+}
+.tailwind-alert blockquote {
+  @apply text-sm;
+}
+
+.no-y-margin > *:first-child {
+  margin-top: 0 !important;
+}
+.no-y-margin > *:last-child {
+  margin-bottom: 0 !important;
+}
+.tailwind-alert a {
+  @apply text-black underline font-normal;
+}
+
+.table-alternating-stripes {
+  background-color: white;
+}
+.table-alternating-stripes tr:nth-child(even) {
+  @apply bg-gray-50;
+}
+.dark .table-alternating-stripes {
+  background-color: hsla(221, 20%, 12%, 1);
+}
+.dark .table-alternating-stripes tr:nth-child(even) {
+  background-color: hsla(221, 20%, 14%, 1);
+}
+
+.dark-mde-container .editor-toolbar {
+  border-top-color: #4a5568;
+  border-left-color: #4a5568;
+  border-right-color: #4a5568;
+}
+.dark-mde-container .CodeMirror {
+  background-color: #edf2f7;
+}
+
+
+.form-input {
+  @apply border-gray-300 rounded-md focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50;
+}
+
+.dark .ais-Highlight-highlighted,
+.dark .ais-Snippet-highlighted {
+  @apply bg-orange-700;
+}
+
+/*! purgecss end ignore */
+
+.tw-forms-disable input {
+  --tw-ring-color: transparent !important;
+}
+.tw-forms-disable-all-descendants * {
+  --tw-ring-color: transparent !important;
+}
+.gatsby-image-wrapper-rounded img {
+  @apply rounded-full;
+}
+
+th, td {
+  @apply px-4 py-2
+}
+th {
+  @apply border-gray-300 border-b font-bold
+}
+table {
+  @apply text-left
+}
+
+button:disabled {
+  @apply text-zinc-400
+}

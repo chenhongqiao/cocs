@@ -7,7 +7,7 @@ import { promisify } from 'node:util'
 
 import { nanoid } from 'nanoid'
 
-import { SESSION_CACHE_KEY, deleteCache, fetchCacheUntilLockAcquired, releaseLock, setCache } from './cache.services.js'
+import { SESSION_CACHE_KEY, deleteCache, fetchCacheUntilLockAcquired, releaseLock, setCache } from '@argoncs/common'
 
 const pbkdf2Async = promisify(pbkdf2)
 

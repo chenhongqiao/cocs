@@ -1,0 +1,176 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="static/output.css">
+    <link rel="icon" href="public/favicon.ico" type="image/x-icon"/>
+
+    <!-- MathJax -->
+    <script>
+window.MathJax = {
+  tex: {
+    loader: {load: ['[tex]/textmacros']},
+    inlineMath: [
+      ['$', '$'],
+      ['\\(', '\\)']
+    ],
+    displayMath: [             // start/end delimiter pairs for display math
+      ['$$', '$$'],
+      ['\\[', '\\]']
+    ],
+    processEscapes: true,      // use \$ to produce a literal dollar sign
+    processEnvironments: true, // process \begin{xxx}...\end{xxx} outside math mode
+    processRefs: true,         // process \ref{...} outside of math mode
+    packages: {'[+]': ['textmacros']},
+  }
+};
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.36.5/ace.min.js" integrity="sha512-NIDAOLuPuewIzUrGoK5fXxowwGDm0DFJhI5TJPyTP6MeY2hUcCSKJr54fecQTEZ8kxxEO2NBrILQSUl4qZ37FA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <!-- Library -->
+    <script>
+const api = `http://${window.location.hostname}:8000`;
+const betterFetch = (url, options, { failable } = {}) => 
+  fetch(api + url, {
+    ...options,
+    credentials: 'include'
+  })
+    .then(async res => {
+      if (res.status >= 200 && res.status < 300) {
+        const contentType = res.headers.get("content-type");
+        return (!contentType || !contentType.includes("application/json")) ? 
+          res : res.json()
+      }
+      throw await res.json()
+    })
+    .catch(err => {
+      if (!failable) {
+        const msg = `Got ${err.statusCode}: ${err.error}, ${err.message}`;
+        console.error(msg);
+        alert(msg);
+      }
+      throw err
+    })
+
+let typesetting = false;
+const trymathjax = async _ => {
+  if (typesetting) return false;
+  typesetting = true;
+  await MathJax.typeset();
+  typesetting = false;
+  return true;
+}
+
+    </script>
+  </head>
+
+  <nav class='bg-white shadow'>
+    <div class='px-24 py-4'>
+      <div class='flex gap-8 my-4'>
+        <img src='public/favicon.ico' style='height: 40px' alt='CPI'>
+        <div class='text-xl'>
+          CPI 
+        </div>
+        <div class='flex-grow'></div>
+        <a href='/login' class='hide-when-logged-in underline text-indigo-600'>
+          login
+        </a>
+        <a href='/signup' class='hide-when-logged-in underline text-indigo-600'>
+         signup
+        </a>
+
+        <!-- dynamically un-hidden when logged in -->
+        <div class='show-when-logged-in hidden' id='nav-username'>username</div>
+        <a class='show-when-logged-in hidden underline text-indigo-600' id='nav-logout'>logout</a>
+      </div>
+
+      <div class='flex gap-8'>
+        <a href='/home'> Home </a>
+        <a href='/contests'> Contests </a>
+        <a href='/registrations'> Registrations </a>
+        <a href='/user'> User </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Nav bar interactivity -->
+  <script>
+//Exposed
+let g_user;
+
+const getSession = async _ => 
+{
+  const res = await betterFetch('/v1/current-session')
+
+  // not logged in
+  if (!res) return
+
+  // get user
+  const { userId } = res;
+  try {
+    g_user = await betterFetch(`/v1/users/${userId}/profiles/private`)
+  } catch (e) {
+    console.error('session found, but failed to fetch profile. assuming not logged in')
+    return
+  }
+
+  // show elements
+  document.querySelectorAll('.show-when-logged-in')
+    .forEach(elem => {
+      elem.classList.remove('hidden')
+    })
+
+  // hide elements
+  document.querySelectorAll('.hide-when-logged-in')
+    .forEach(elem => {
+      elem.classList.add('hidden')
+    })
+
+  document.getElementById('nav-username').innerText = g_user.username;
+}
+
+const checkHeartbeat = async _ => {
+  await betterFetch(`/v1/heartbeat`, {}, { failable: true })
+    .then(_ => console.log('Server heartbeat received. OK'))
+    .catch(_ => { 
+      console.error('Server heartbeat not received. NG. Aborting')
+      throw new Error('server offline');
+    });
+}
+
+
+document.getElementById('nav-logout').onclick = async _ => {
+
+  await betterFetch(`/v1/current-session`, { method: 'DELETE' })
+
+  window.location.reload();
+}
+
+afterNavBar = [];
+const awaitNavBar = fn => {
+  afterNavBar.push(fn)
+}
+
+const fn = async _ => {
+  try {
+    await checkHeartbeat()
+  } catch (e) {
+    document.querySelector('#notice-noserver').classList.remove('hidden');
+  }
+
+  await getSession()
+
+  for (const fn of afterNavBar) 
+    fn();
+}
+
+fn();
+  </script>
+
+
+  <div class='max-w-screen-md h-full m-auto mt-12'>
+    <div id='notice-noserver' class='hidden text-red-500'>Server offline</div>
+    <content/>
+  </div>
+
+</html>
+

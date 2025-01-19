@@ -1,16 +1,18 @@
 import { emailClient } from '../connections/email.connections.js'
-import emailVerificationTemplate from '../templates/confirmEmail.js'
+import { emailVerificationTemplate } from '../templates/confirmEmail.js'
+import { teamInviteTemplate } from '../templates/teamInviteEmail.js'
 
-type EmailTemplates = Record<'confirmEmail', string>
+type EmailTemplates = Record<string, string>
 const templates: EmailTemplates = {
-  confirmEmail: emailVerificationTemplate
+  confirmEmail: emailVerificationTemplate,
+  inviteEmail: teamInviteTemplate
 }
 
 export async function sendEmail ({ to, subject, template, values }:
 {
   to: string
   subject: string
-  template: 'confirmEmail'
+  template: 'confirmEmail' | 'inviteEmail'
   values: Record<string, string>
 }): Promise<void> {
   let content = templates[template]

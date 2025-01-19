@@ -1,0 +1,55 @@
+<h1>signup</h1>
+
+<div class='space-y-2'>
+  <input type="text" id="username" class='input' placeholder="username"> <br>
+  <input type="text" id="email" class='input' placeholder="email"> <br>
+  Highschool graduation month: <br>
+  <input type="month" min="1950-01" max="2050-12" id="year" class='input'> <br>
+  <input type="text" id="password" class='input' placeholder="password"> <br>
+
+  <button id="signup" class='btn btn-sm'>signup</button>
+</div>
+
+
+<script>
+  document.getElementById('signup').onclick = async _ => 
+  {
+    console.log('signup');
+
+    const body = {
+      name: document.getElementById('username').value,
+      username: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+      email: document.getElementById('email').value,
+      year: document.getElementById('year').value,
+      school:"Rock High School",
+      country:"USA",
+      region:"Pacific"
+    };
+
+    if (!body.name) return alert('no name');
+    if (!body.email) return alert('no email');
+    if (!body.username) return alert('no username');
+    if (!body.password) return alert('no password');
+    if (body.password.length < 8) return alert('password shorter than 8 characters');
+    if (body.year > 2040 || body.year < 1900) return alert('high school class year should be between 1900 to 2040');
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body)
+    };
+
+    await betterFetch('/v1/users/', options, {failable: true}) 
+      .then(res => {
+        alert("signed up");
+        document.location.href = '/login';
+      })
+      .catch(res => res.statusCode == 400 ? alert(`${res.message}: ${JSON.stringify(res.failedValidations.body)}`) : alert(res.message));
+
+  }
+  
+</script>
+

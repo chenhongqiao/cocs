@@ -1,20 +1,19 @@
 import { Type } from '@sinclair/typebox'
-import { type UserPublicProfile, UserPublicProfileSchema, NewUserSchema, UserPrivateProfileSchema, SubmissionSchema } from '@argoncs/types'
-import { completeVerification, emailExists, fetchUser, initiateVerification, registerUser, queryUsers, userIdExists, usernameExists } from '../../services/user.services.js'
+import { type UserPublicProfile, UserPublicProfileSchema, NewUserSchema, UserPrivateProfileSchema, SubmissionSchema, TeamInvitationSchema } from '@argoncs/types' /*=*/
+import { emailExists, fetchUser, registerUser, queryUsers, userIdExists, usernameExists, fetchUserInvitations } from '../../services/user.services.js'
 import { ownsResource } from '../../auth/ownership.auth.js'
-import { type FastifyTypeBox } from '../../types.js'
+import { type FastifyTypeBox } from '../../types.js' /*=*/
 import { NotFoundError, badRequestSchema, conflictSchema, forbiddenSchema, notFoundSchema, unauthorizedSchema } from 'http-errors-enhanced'
-import { contestNotBegan, contestPublished } from '../../auth/contest.auth.js'
 import { completeTeamInvitation } from '../../services/team.services.js'
-import { hasDomainPrivilege, hasNoPrivilege } from '../../auth/scope.auth.js'
+import { hasDomainPrivilege } from '../../auth/scope.auth.js'
 import { isTeamMember } from '../../auth/team.auth.js'
 import { fetchSubmission } from '@argoncs/common'
 import { isSuperAdmin } from '../../auth/role.auth.js'
 import { userAuthHook } from '../../hooks/authentication.hooks.js'
-import { contestInfoHook } from '../../hooks/contest.hooks.js'
 import { submissionInfoHook } from '../../hooks/submission.hooks.js'
 import gravatarUrl from 'gravatar-url'
 import { querySubmissions } from '../../services/submission.services.js'
+import {fetchContestProblem} from '../../services/contest.services.js'
 
 async function userProfileRoutes (profileRoutes: FastifyTypeBox): Promise<void> {
   profileRoutes.get(
@@ -32,8 +31,7 @@ async function userProfileRoutes (profileRoutes: FastifyTypeBox): Promise<void> 
     async (request, reply) => {
       const { userId } = request.params
       const { username, name, id, email } = await fetchUser({ userId })
-      const gravatar = email != null ? gravatarUrl(email) : undefined
-      const publicProfile: UserPublicProfile = { username, name, id, gravatar }
+      const publicProfile: UserPublicProfile = { username, name, id }
       await reply.status(200).send(publicProfile)
     }
   )
@@ -57,84 +55,8 @@ async function userProfileRoutes (profileRoutes: FastifyTypeBox): Promise<void> 
     },
     async (request, reply) => {
       const { userId } = request.params
-      const { username, name, email, newEmail, scopes, role, teams, year, school, country, region, id } = await fetchUser({ userId })
-      const gravatar = email != null ? gravatarUrl(email) : undefined
-      return await reply.status(200).send({ id, username, name, email, newEmail, scopes, role, teams, year, school, country, region, gravatar })
-    }
-  )
-}
-
-async function userVerificationRoutes (verificationRoutes: FastifyTypeBox): Promise<void> {
-  verificationRoutes.post(
-    '/',
-    {
-      schema: {
-        params: Type.Object({ userId: Type.String() }),
-        response: {
-          400: badRequestSchema,
-          401: unauthorizedSchema,
-          403: forbiddenSchema
-        }
-      },
-      onRequest: [userAuthHook, verificationRoutes.auth([
-        [ownsResource]
-      ]) as any]
-    },
-    async (request, reply) => {
-      const { userId } = request.params
-      await initiateVerification({ userId })
-      return await reply.status(204).send()
-    }
-  )
-
-  verificationRoutes.post(
-    '/:verificationId',
-    {
-      schema: {
-        params: Type.Object({
-          verificationId: Type.String()
-        }),
-        response: {
-          200: Type.Object({ modified: Type.Boolean() }),
-          400: badRequestSchema,
-          401: unauthorizedSchema,
-          403: notFoundSchema
-        }
-      },
-      onRequest: [userAuthHook, verificationRoutes.auth([
-        [ownsResource]
-      ]) as any]
-    },
-    async (request, reply) => {
-      const { verificationId } = request.params
-      const { modified } = await completeVerification({ verificationId })
-      return await reply.status(200).send({ modified })
-    }
-  )
-}
-
-export async function userContestRoutes (contestRoutes: FastifyTypeBox): Promise<void> {
-  contestRoutes.post(
-    '/:contestId/invitations/:invitationId',
-    {
-      schema: {
-        params: Type.Object({ contestId: Type.String(), userId: Type.String(), invitationId: Type.String() }),
-        response: {
-          400: badRequestSchema,
-          401: unauthorizedSchema,
-          403: forbiddenSchema,
-          404: notFoundSchema
-        }
-      },
-      onRequest: [userAuthHook, contestInfoHook, contestRoutes.auth([[
-        hasNoPrivilege, contestPublished, contestNotBegan, ownsResource]
-      ]) as any]
-    },
-    async (request, reply) => {
-      const { invitationId, userId } = request.params
-      await completeTeamInvitation({ invitationId, userId })
-
-      return await reply.status(204).send()
+      const { username, name, email, scopes, role, teams, year, id } = await fetchUser({ userId })
+      return await reply.status(200).send({ id, username, name, email, scopes, role, teams, year })
     }
   )
 }
@@ -146,10 +68,14 @@ async function userSubmissionRoutes (submissionRoutes: FastifyTypeBox): Promise<
       schema: {
         params: Type.Object({ userId: Type.String() }),
         response: {
-          200: Type.Array(SubmissionSchema),
+          200: Type.Array(Type.Intersect([
+            Type.Object({ problemName: Type.String(), problemId: Type.String() }),
+            SubmissionSchema
+          ])),
           400: badRequestSchema,
           401: unauthorizedSchema,
-          403: forbiddenSchema
+          403: forbiddenSchema,
+          404: notFoundSchema
         }
       },
       onRequest: [userAuthHook, submissionRoutes.auth([
@@ -160,7 +86,16 @@ async function userSubmissionRoutes (submissionRoutes: FastifyTypeBox): Promise<
     async (request, reply) => {
       const { userId } = request.params
       const submissions = await querySubmissions({ query: { userId } })
-      return await reply.status(200).send(submissions)
+      const _submissions = await Promise.all(submissions.map(async submission => {
+        const { name: problemName } = await fetchContestProblem({ problemId: submission.problemId });
+        return { ...submission, problemName };
+      }));
+      // NOTE: having some issues with the _submissions object being GC'ed before returning
+      // When you print _submissions, the object is present, but on the HTTP response it only shows 'PROBLEM NAME'.
+      // I'm guessing this is something to do with ownership, not the typing.
+      // I've just made it stringify it first so that GC won't mess with it.
+      // NOTE: Doing JSON.parse(JSON.stringify(x)) doesn't work either for some reason.
+      return await reply.status(200).send(JSON.stringify(_submissions))
     }
   )
 
@@ -191,7 +126,61 @@ async function userSubmissionRoutes (submissionRoutes: FastifyTypeBox): Promise<
     })
 }
 
+
+async function userInviteRoutes (inviteRoutes: FastifyTypeBox): Promise<void> {
+
+  /* Returns all pending invites to user
+   */
+  inviteRoutes.get(
+    '/',
+    {
+      schema: {
+        params: Type.Object({ userId: Type.String() }),
+        response: {
+          200: Type.Array(TeamInvitationSchema),
+          400: badRequestSchema,
+          401: unauthorizedSchema
+        },
+        onRequest: [userAuthHook]
+      }
+    },
+    async (request, reply) => {
+      const { userId } = request.params;
+      const invites = await fetchUserInvitations({ userId });
+      return await reply.status(200).send(invites.slice(0,10))
+    }
+  )
+
+  /* Accept Invite
+   */
+  inviteRoutes.post(
+    '/:invitationId',
+    {
+      schema: {
+        params: Type.Object({ userId: Type.String(), invitationId: Type.String() }),
+        response: {
+          400: badRequestSchema,
+          401: unauthorizedSchema,
+          403: forbiddenSchema,
+          404: notFoundSchema,
+          409: conflictSchema
+        }
+      },
+      onRequest: [userAuthHook, inviteRoutes.auth([[ownsResource]]) as any]
+    },
+    async (request, reply) => {
+
+      const { invitationId, userId } = request.params
+      await completeTeamInvitation({ invitationId, userId })
+
+      return await reply.status(204).send()
+    }
+  )
+
+}
+
 export async function userRoutes (routes: FastifyTypeBox): Promise<void> {
+  /* Update User */
   routes.post(
     '/',
     {
@@ -233,6 +222,8 @@ export async function userRoutes (routes: FastifyTypeBox): Promise<void> {
     }
   )
 
+  /* Search for user 
+   */
   routes.get(
     '/',
     {
@@ -264,8 +255,8 @@ export async function userRoutes (routes: FastifyTypeBox): Promise<void> {
     }
   )
 
+
   await routes.register(userProfileRoutes, { prefix: '/:userId/profiles' })
-  await routes.register(userVerificationRoutes, { prefix: '/:userId/email-verifications' })
-  await routes.register(userContestRoutes, { prefix: '/:userId/contests' })
   await routes.register(userSubmissionRoutes, { prefix: '/:userId/submissions' })
+  await routes.register(userInviteRoutes, { prefix: '/:userId/invitations' })
 }

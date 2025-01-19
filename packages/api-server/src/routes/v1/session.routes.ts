@@ -8,7 +8,7 @@ import { type FastifyTypeBox } from '../../types.js'
 import { badRequestSchema, notFoundSchema, unauthorizedSchema } from 'http-errors-enhanced'
 import { UserLoginSchema, UserPrivateSessionSchema, UserPublicSessionSchema } from '@argoncs/types'
 import { userAuthHook } from '../../hooks/authentication.hooks.js'
-import { requestUserProfile, requestSessionToken } from '../../utils/auth.utils.js'
+import { requestUserProfile, requestSessionToken } from '../../utils/auth.utils.js'/*=*/
 
 export async function userSessionRoutes (userSessionRoutes: FastifyTypeBox): Promise<void> {
   /*

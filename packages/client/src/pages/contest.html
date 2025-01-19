@@ -1,0 +1,539 @@
+<div id='not-exist-notice' class='hidden italic text-rose-600'> contest does not exist </div>
+
+<div class='flex w-full'>
+<div class='shadow w-1/4 p-4 h-max space-y-2'>
+  <button id='nav-home' class='contest-name font-bold'></button><br>
+  <button id='nav-ranklist' disabled>Ranklist</button><br>
+  <button id='nav-submission' disabled>Submissions</button><br>
+  <hr>
+  
+  <!-- populated dynamically -->
+  <div id='problem-list' class='space-y-2'>
+    <div class='font-bold'>problems</div>
+    <template id='problem-button'>
+      <button id='button'>
+        <span id='name'></span>
+      </button>
+    </template>
+  </div>
+
+  <hr>
+  <button id='nav-announcement' disabled>Announcements</button>
+</div>
+
+<div id='box' class='pl-6 pb-10 w-3/4'>
+
+  <!-- home box -->
+  <div id='home-box'>
+    <h1 class='contest-name'></h1>
+    <p class='contest-desc'></p>
+    
+    <h3>Logistics</h3>
+    <p class='contest-logs'></p>
+  </div>
+
+  <!-- submission box -->
+  <div id='submission-box' class='hidden'>
+    <h1>Submissions</h1>
+
+    <table class='table-fixed w-full'>
+      <thead class='spacing-4'>
+        <th>date</th>
+        <th>user</th>
+        <th>problem</th>
+        <th>status</th>
+        <th>score</th>
+      </thead>
+      <tbody>
+        <!-- Submission row template -->
+        <template id='submission-template'>
+        <tr id='row'>
+          <td id='date'></td>
+          <td id='user'></td>
+          <td id='problem'></td>
+          <td id='status'></td>
+          <td id='score'></td>
+        </tr>
+        </template>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- submission detail box -->
+  <div id='submission-detail-box' class='hidden'>
+    <h1>Submission Details</h1>
+
+    <span class='italic'>id: <span id='id'></span></span> <br>
+    <span id='date'></span><br>
+    by: <span id='author' class='font-bold'></span><br>
+    status: <span id='status' class='font-bold'></span> <br>
+    score: <span id='score' class='font-bold'></span> pts <br>
+    for <span id='problem' class='font-bold'></span> <br>
+    <div id='log' class='hidden'>
+      Judger Message: <br>
+      <pre></pre>
+    </div>
+    <div id='source' class='h-72 w-full mt-4'></div>
+    <div id='testcase-list'></div>
+    <template>
+      <div class='flex flex-wrap w-full border-2 rounded-md py-2 my-2 divide-x-2 text-center'>
+        <div id='status' class='font-bold basis-10'></div> 
+        <div class='basis-20'><span id='time'></span> ms</div> 
+        <div class='basis-20'><span id='memory'></span></div> 
+        <div id='message' class='px-2 text-left'></div> 
+      </div>
+    </template>
+  </div>
+
+  <!-- ranklist box -->
+  <div id='ranklist-box' class='hidden'>
+    <h1>Ranklist</h1>
+
+    <div id='ranklist-list' class='rounded-xl bg-clip-border'>
+      <table class='text-left'>
+        <thead>
+          <th>rank</th>
+          <th>name</th>
+          <th>score</th>
+          <th>penalty</th>
+
+          <!-- problem column template -->
+          <template>
+          <th><span id='name'></span></th>
+          </template>
+        </thead>
+        <tbody></tbody>
+
+        <!-- Ranklist row template -->
+        <template id='ranklist-row-template'>
+        <tr id='row'>
+          <td id='rank' class='font-bold'></td>
+          <td id='name' class='font-bold'></td>
+          <td id='score' class='font-bold'></td>
+          <td id='penalty'></td>
+          <template id='problem-score-template'>
+            <td>
+              <span id='status'></span>
+            </td>
+          </template>
+        </tr>
+        </template>
+      </table>
+    </div>
+  </div>
+
+  <!-- announcement -->
+  <div id='announcement-box' class='hidden'>
+    <h1>Announcements</h1>
+    <table class='table-fixed w-full'>
+      <thead>
+        <th>date</th>
+        <th>problem</th>
+        <th>note</th>
+      </thead>
+      <tbody>
+      </tbody>
+
+      <template>
+        <tr>
+          <td id="date"></td>
+          <td id="problem"></td>
+          <td id="note"></td>
+        </tr>
+      </template>
+    </table>
+    <div id='announcement-none-notice' class='w-full text-center italic'>no announcements yet</div>
+  </div>
+
+</div>
+
+
+<!-- Problem page template -->
+<template id='problem-box-template'>
+<div id='problem-box' class='problem-box hidden w-full'>
+  <h1 id='name'></h1>
+
+  time constraint per test <span id='time-constraint'></span> ms<br>
+  memory constraint per test <span id='memory-constraint'></span> MB<br>
+
+  <div id='context'></div>
+
+  <h2>input</h2>
+  <div id='inputFormat'></div>
+
+  <h2>output</h2>
+  <div id='outputFormat'></div>
+
+  <h2 id='sampleTitle'>samples</h2>
+  <div id='samples'>
+    <template>
+      input<br>
+      <pre id='input' class='border-2 bg-gray-50 p-2 rounded-md text-xs'></pre>
+      output<br>
+      <pre id='output' class='border-2 bg-gray-50 p-2 rounded-md text-xs'></pre>
+    </template>
+  </div>
+
+  <h2>notes</h2>
+  <div id='note'></div>
+
+  <h2 class='submission'>submission</h2>
+  <label class='submission' for="lang">Language:</label>
+  <select name="lang" id="lang" value="C++17" class='submission input'>
+     <option value="C++">C++</option>
+     <option value="Python">Python</option>
+  </select> <br>
+  <div id='editor' class='submission w-full h-72 mt-4'></div>
+  <button id='submit' class='submission btn'>submit</button>
+
+</div>
+</template>
+
+</div>
+
+<script>
+
+// Create problem box with problem id in element id
+// hidden in the box
+const makeProblemElement = async (contestId, problemId) => 
+{
+  const { name, context, note, constraints, inputFormat, outputFormat, samples } =
+    await betterFetch(`/v1/contests/${contestId}/problems/${problemId}`);
+
+  const format = s => 
+    s
+      .replaceAll("\\begin{center}", "<p style='text: center'>")
+      .replaceAll("\\end{center}", "</p>")
+      .replaceAll(/\\begin{enumerate}[\r\n ]*/g, "<ul class='list-decimal list-inside'>")
+      .replaceAll(/\\end{enumerate}(?: *\n)?/g, "</ul>")
+      .replaceAll(/\\begin{itemize}[\r\n ]*/g, "<ul class='list-disc list-inside'>")
+      .replaceAll(/\\end{itemize}(?: *\n)?/g, "</ul>")
+      .replaceAll(/\\item(.*)\r?\n/g, "<li>$1</li>")
+      .replaceAll(/\\t{(.*?)}/g, "<code>$1</code>")
+      .replaceAll(/\\bf{(.*?)}/g, "<b>$1</b>")
+      .replaceAll(/\r?\n/g, "<br style='line-height: 0.7rem'>")
+
+  const e = document.querySelector('#problem-box-template').content.cloneNode(true);
+
+  e.querySelector('#name').innerText = name;
+  e.querySelector('#time-constraint').innerText = constraints.time;
+  e.querySelector('#memory-constraint').innerText = constraints.memory / 1000;
+  e.querySelector('#context').innerHTML = format(context);
+  e.querySelector('#inputFormat').innerHTML = format(inputFormat);
+  e.querySelector('#outputFormat').innerHTML = format(outputFormat);
+  e.querySelector('#note').innerHTML = format(note);
+
+  // samples
+  if (samples.length == 0)
+    e.querySelector('#sampleTitle').classList.add('hidden');
+  for (const sample of samples) {
+    const s = e.querySelector('#samples template').content.cloneNode(true);
+    s.querySelector('#input').innerText = sample.input;
+    s.querySelector('#output').innerText = sample.output;
+    e.querySelector('#samples').appendChild(s);
+  }
+
+  // if not logged in, no submit
+  if (g_user === undefined)
+    e.querySelectorAll('.submission').forEach(e => e.classList.add('hidden'))
+
+  // submission
+  e.querySelector('#submit').onclick = async _ => 
+  {
+    console.log('submiting');
+
+    const editorE = document.querySelector(`#problem-${problemId}-box #editor`);
+    const source = ace.edit(editorE).getValue();
+    const lang = document.querySelector(`#problem-${problemId}-box #lang`);
+
+    const body = { 
+      language: lang.value,
+      source
+    };
+
+    if (!body.language) return alert('no language');
+    if (!body.source) return alert('no source');
+
+    const options = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    };
+
+    await betterFetch(`/v1/contests/${contestId}/problems/${problemId}/submissions`, options)
+      .then(res => {
+        alert('submitted');
+        window.location.reload();
+      })
+  }
+  
+  // editor
+  const editor = ace.edit(e.querySelector('#editor'), {
+    mode: "ace/mode/c_cpp",
+    selectionStyle: "text"
+  })
+
+  e.querySelector('#lang').onchange = e => {
+    let mode;
+    if (e.srcElement.value === 'C++') mode = 'c_cpp';
+    if (e.srcElement.value === 'Python') mode = 'python';
+    editor.session.setMode(`ace/mode/${mode}`);
+  }
+
+  // add
+  e.querySelector('#problem-box').id = `problem-${problemId}-box`;
+  document.getElementById('box').appendChild(e);
+}
+
+const changetabnopersist = tab => {
+  for (const e of document.getElementById('box').children)
+    if (!e.classList.contains('hidden'))
+      e.classList.add('hidden')
+  
+  // if none such tab, go to home
+  if (document.getElementById(`${tab}-box`) == null)
+    tab = 'home'
+
+  document.getElementById(`${tab}-box`).classList.remove('hidden');
+}
+
+const changetab = tab => {
+  for (const e of document.getElementById('box').children)
+    if (!e.classList.contains('hidden'))
+      e.classList.add('hidden')
+  
+  // if none such tab, go to home
+  if (document.getElementById(`${tab}-box`) == null)
+    tab = 'home'
+
+  document.getElementById(`${tab}-box`).classList.remove('hidden');
+  let params = new URLSearchParams(document.location.search);
+  var url = new URL(window.location.href);
+  url.searchParams.set('tab', tab);
+  window.history.pushState('','',url.toString())
+}
+
+
+
+const setup = async _ => {
+  const params = new URLSearchParams(window.location.search);
+
+  // change tab
+  changetab(params.get('tab'));
+
+  // NOTE: If cannot get contest, it doesn't exist yet. notify
+  let contest;
+  try {
+    contest = await betterFetch(`/v1/contests/${params.get('id')}`, {}, { failable: true });
+  } catch (e) {
+    console.log(e);
+    console.log('could not get contest, contest does not exist. ending.');
+    document.querySelector('#not-exist-notice').classList.remove('hidden');
+
+    return;
+  }
+
+  // === home-box ===
+  document.querySelectorAll('.contest-name').forEach(e => e.innerText = contest.name)
+  document.querySelectorAll('.contest-desc').forEach(e => e.innerText = contest.description)
+  document.querySelectorAll('.contest-logs').forEach(e => e.innerText = contest.logistics)
+
+
+  // === ranklist box ===
+  let ranklist, ranklistProblemList;
+  try {
+    ({ranklist, problems: ranklistProblemList} = await betterFetch(`/v1/contests/${contest.id}/ranklist`, {}, {failable: true}));
+  } catch (e) {
+    console.log(e);
+    console.log('could not get ranklist.');
+  }
+
+  if (Array.isArray(ranklist)) 
+  {
+    const problems = ranklistProblemList;
+    document.querySelector('#nav-ranklist').disabled = false;
+    // ranklist table header
+    for (const problem of problems) {
+      const e = document.querySelector('#ranklist-box thead template').content.cloneNode(true);
+
+      e.querySelector('#name').innerText = problem.name;
+
+      document.querySelector('#ranklist-box thead tr').appendChild(e);
+    }
+
+    // ranklist table body
+    for (const [rank, { name, id, totalScore: score, totalPenalty: penalty, scores }] of ranklist.entries()) {
+      const e = document.querySelector('#ranklist-row-template').content.cloneNode(true);
+
+      e.querySelector('#rank').innerText = rank+1;
+      e.querySelector('#name').innerText = name;
+      e.querySelector('#score').innerText = score.toFixed(2);
+      e.querySelector('#penalty').innerText = penalty.toFixed(2);
+
+      // problem status
+      for (const problem of problems) {
+        const q = e.querySelector('template').content.cloneNode(true);
+        q.querySelector('td').id = problem.id 
+        q.querySelector('#status').innerText = scores[problem.id] !== undefined ? scores[problem.id].toFixed(2) : '-';
+
+        e.querySelector('tr').appendChild(q);
+      }
+
+      document.querySelector('#ranklist-box tbody').appendChild(e)
+    }
+  }
+
+  // === problem boxes ===
+  let problems
+  let problemsMap = {};
+  try {
+    ({ problems } = await betterFetch(`/v1/contests/${contest.id}/problems/`, {}, { failable: true }))
+  } catch (e) {
+    // NOTE: if cannot get problems, the contest is probably upcomming
+    console.log(e);
+    console.log('could not get problems.')
+  }
+
+  if (Array.isArray(problems)) 
+  {
+    const problemMakePromises = [];
+    for (const problem of problems) 
+    {
+      problemsMap[problem.id] = problem;
+
+      // make button
+      const e = document.querySelector('#problem-button').content.cloneNode(true);
+      e.querySelector('#name').innerText = problem.name;
+      e.querySelector('#button').onclick = _ => changetab(`problem-${problem.id}`)
+
+      // make box
+      problemMakePromises.push(makeProblemElement(contest.id, problem.id))
+         
+      // append
+      document.getElementById('problem-list').appendChild(e)
+    }
+
+    // Trigger mathjax when all problems are made
+    // Change tab
+    Promise.all(problemMakePromises)
+      .then(_ => {
+        changetab(params.get('tab'));
+        return trymathjax();
+      })
+      .then(res => {
+        // Mathjax did not run. Typesetting was already triggered. Should not happen
+        if (res == false)
+          console.error('Mathjax did not run. Typesetting was already triggered')
+      })
+  }
+
+  // === submission box ===
+  let submissions;
+  try {
+    submissions = await betterFetch(`/v1/contests/${contest.id}/submissions`, {}, {failable: true})
+      .then(res => res.json());
+  } catch (e) {
+    console.log(e);
+    console.log('could not get submissions, either not logged in or not a participant to ongoing contest');
+  }
+
+  if (Array.isArray(submissions)) 
+  {
+    document.querySelector('#nav-submission').disabled = false;
+    let html = '';
+    for (const { problem, user, createdAt, status, score, testcases, id, log, source, language } of submissions) 
+    {
+      const t = document.querySelector('#submission-template').content.cloneNode(true);
+      const e = t.querySelector('#row');
+
+      // row
+      e.querySelector('#date').innerText = (new Date(createdAt)).toLocaleString();
+      e.querySelector('#user').innerText = user.name;
+      e.querySelector('#problem').innerText = problem.name;
+      e.querySelector('#status').innerText = status;
+      e.querySelector('#score').innerText = score !== undefined ? score.toFixed(2) : '-';
+
+      // onclick: toggle details
+      e.onclick = _ => {
+        const b = document.querySelector(`#submission-detail-box`);
+
+        // reset
+        b.querySelector('#testcase-list').innerHTML = '';
+        b.querySelector('#log').classList.add('hidden');
+
+        // set props
+        b.querySelector('#id').innerText = id;
+        b.querySelector('#author').innerText = user.name;
+        b.querySelector('#date').innerText = (new Date(createdAt)).toLocaleString();
+        b.querySelector('#problem').innerText = problem.name;
+        b.querySelector('#status').innerText = status; 
+        b.querySelector('#score').innerText = score !== undefined ? score.toFixed(2) : '-';
+        b.querySelector('#log pre').innerText = log ?? '';
+        b.querySelector('#log').classList.remove('hidden');
+
+        // source
+        const editor = ace.edit(b.querySelector('#source'), {
+          mode: `ace/mode/${language == 'C++' ? 'c_cpp' : 'python'}`,
+          selectionStyle: "text"
+        })
+        editor.setValue(source);
+        editor.setReadOnly(true);
+
+
+        // testcase rows
+        for (let { score, result } of testcases ?? []) {
+          const r = b.querySelector('template').content.cloneNode(true);
+
+          if (result == undefined)
+            result = {}
+          
+          r.querySelector('#status').innerText = result.status ?? '-';
+          r.querySelector('#status').style.color = 
+            result.status == "AC" ? 'green' :
+            result.status == "WA" ? 'red' :
+            result.status == "TLE" ? 'red' :
+            result.status == "MLE" ? 'red' :
+            result.status == "SE" ? 'blue' : 'black';
+          
+          r.querySelector('#time').innerText = result.wallTime ?? '-';
+          r.querySelector('#memory').innerText = 
+            result.memory ?  result.memory > 1000 ? `${Math.floor(result.memory/1000)} MB` : `${result.memory} KB` : '-'
+          r.querySelector('#message').innerText = result.message ?? '-'
+
+          b.querySelector('#testcase-list').appendChild(r);
+        }
+
+        // change tab
+        changetabnopersist('submission-detail');
+      }
+
+      document.querySelector('#submission-box tbody').appendChild(t)
+    }
+  }
+  
+  // announcements
+  // TODO: FAKE
+  const announcements = []; //await betterFetch(`v1/contests/${contest.id}/announcements`);
+
+  // If there are announcements, clear the 'no announcements' notice
+  if (announcements.length !== 0) 
+    document.querySelector('#announcement-none-notice').remove();
+  
+  for (const { date, problemId, note } of announcements) {
+    const e = document.querySelector('#announcement-box template').content.cloneNode(true);
+
+    e.querySelector('#date').innerText = (new Date(date)).toLocaleString();
+    e.querySelector('#problem').innerText = problem;
+    e.querySelector('#note').innerText = note;
+
+    document.querySelector('#announcement-box tbody').appendChild(e)
+  }
+}
+
+document.getElementById('nav-home').onclick = _ => changetab('home')
+document.getElementById('nav-ranklist').onclick = _ => changetab('ranklist')
+document.getElementById('nav-submission').onclick = _ => changetab('submission')
+document.getElementById('nav-announcement').onclick = _ => changetab('announcement')
+
+awaitNavBar(setup)
+</script>

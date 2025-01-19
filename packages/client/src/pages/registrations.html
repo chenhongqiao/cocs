@@ -1,0 +1,101 @@
+
+<template id='team'>
+<div class='p-4 border-solid border-2 border-slate-200 rounded-lg'>
+  <div>
+    <span id="name" class='text-lg font-bold'></span>
+    <br>
+    for <span id="contest" class='text-sm italic'></span>
+  </div>
+
+  <!--
+  <h3>members:</h3>
+  <div id='member-list'></div>
+  -->
+
+  <a id='unregister' class='hidden underline text-indigo-600'>unregister</a>
+</div>
+</template>
+
+<h1>Registrations</h1>
+
+these are the contests you've registered for or teamed up in <br>
+<span id='not-logged-in-notice' class='hidden italic'>you are not logged in.</span> <br>
+<span id='none-notice' class='hidden italic'>none</span> <br>
+
+<!-- populated dynamically -->
+<h3>present</h3>
+<div id='present-team-list' class='space-y-2'></div>
+<h3>upcoming</h3>
+<div id='upcoming-team-list' class='space-y-2'></div>
+<h3>past</h3>
+<div id='past-team-list' class='space-y-2'></div>
+
+<script>
+// generate callback function given a team
+const makeUnregisterCallback = team => {
+  return async _ => {
+
+    console.log('unregister');
+
+    await betterFetch(`/v1/contests/${team.contestId}/teams/${team.id}`, { method: 'DELETE' })
+      .then(res => console.log("team unregistered"));
+
+    // refresh page
+    window.location.reload();
+  }
+}
+
+const getTeams = async _ => 
+{
+  // if not logged in
+  if (!g_user) {
+    document.getElementById('not-logged-in-notice').classList.remove('hidden');
+    return;
+  }
+
+  // if no teams
+  if (g_user.teams.length == 0) {
+    document.getElementById('none-notice').classList.remove('hidden');
+  }
+
+  for (const [contestId, teamId] of Object.entries(g_user.teams)) {
+    const contest = await betterFetch(`/v1/contests/${contestId}`);
+    const team = await betterFetch(`/v1/contests/${contestId}/teams/${teamId}`);
+
+    const e = document.querySelector('#team').content.cloneNode(true);
+    e.querySelector('#name').innerText = team.name;
+    e.querySelector('#contest').innerText = contest.name;
+
+    /*
+    let html = '';
+    for (const member of team.members) {
+      html += `<div>${member.name}</div>`
+    }
+    e.querySelector('#member-list').innerHTML = html
+    */
+
+    // contest state
+    const present = contest.startTime < Date.now() && contest.endTime > Date.now();
+    const past = contest.endTime < Date.now();
+    const upcoming = !past && !present;
+
+    // unregister
+    if (upcoming) {
+      e.querySelector('#unregister').classList.remove('hidden')
+      e.querySelector('#unregister').onclick = makeUnregisterCallback(team);
+    }
+
+    // determine contest type & list to append to
+    const list = present ? 
+      document.getElementById('present-team-list') :
+      past ?
+        document.getElementById('past-team-list') :
+        document.getElementById('upcoming-team-list')
+
+    list.appendChild(e);
+  }
+}
+
+awaitNavBar(getTeams)
+
+</script>

@@ -1,9 +1,9 @@
-import { type NewDomain, type Domain, type DomainMembers } from '@argoncs/types'
+import { type NewDomain, type Domain, type DomainMembers /*=*/ } from '@argoncs/types'
 import { mongoClient, domainCollection, userCollection } from '@argoncs/common'
 import { NotFoundError } from 'http-errors-enhanced'
 
 import { nanoid } from 'nanoid'
-import { USER_CACHE_KEY, deleteCache } from './cache.services.js'
+import { USER_CACHE_KEY, deleteCache } from '@argoncs/common'
 
 export async function createDomain ({ newDomain }: { newDomain: NewDomain }): Promise<{ domainId: string }> {
   const domainId = nanoid()
@@ -21,63 +21,6 @@ export async function updateDomain ({ domainId, domain }: { domainId: string, do
   return { modified: modifiedCount > 0 }
 }
 
-export async function addOrUpdateDomainMember ({ domainId, userId, scopes }: { domainId: string, userId: string, scopes: string[] }): Promise<{ modified: boolean }> {
-  const session = mongoClient.startSession()
-  let modifiedCount = 0
-  try {
-    await session.withTransaction(async () => {
-      const { matchedCount: matchedUser, modifiedCount: modifiedUser } = await userCollection.updateOne({ id: userId },
-        { $set: { [`scopes.${domainId}`]: scopes } }, { session })
-      if (matchedUser === 0) {
-        throw new NotFoundError('User not found')
-      }
-      modifiedCount += Math.floor(modifiedUser)
-
-      const { matchedCount: matchedDomain, modifiedCount: modifiedDomain } = await domainCollection.updateOne({ id: domainId }, { $addToSet: { members: userId } }, { session })
-      if (matchedDomain === 0) {
-        throw new NotFoundError('Domain not found')
-      }
-      modifiedCount += Math.floor(modifiedDomain)
-    })
-  } finally {
-    await session.endSession()
-  }
-
-  const modified = modifiedCount > 0
-  if (modified) {
-    await deleteCache({ key: `${USER_CACHE_KEY}:{userId}` })
-  }
-  return { modified }
-}
-
-export async function removeDomainMember ({ domainId, userId }: { domainId: string, userId: string }): Promise<{ modified: boolean }> {
-  const session = mongoClient.startSession()
-  let modifiedCount = 0
-  try {
-    await session.withTransaction(async () => {
-      const { matchedCount: matchedUser, modifiedCount: modifiedUser } = await userCollection.updateOne({ id: userId },
-        { $unset: { [`scopes.${domainId}`]: '' } }, { session })
-      if (matchedUser === 0) {
-        throw new NotFoundError('User not found')
-      }
-      modifiedCount += Math.floor(modifiedUser)
-
-      const { matchedCount: matchedDomain, modifiedCount: modifiedDomain } = await domainCollection.updateOne({ id: domainId }, { $pull: { members: userId } }, { session })
-      if (matchedDomain === 0) {
-        throw new NotFoundError('Domain not found')
-      }
-      modifiedCount += Math.floor(modifiedDomain)
-    })
-  } finally {
-    await session.endSession()
-  }
-  const modified = modifiedCount > 0
-  if (modified) {
-    await deleteCache({ key: `${USER_CACHE_KEY}:{userId}` })
-  }
-  return { modified }
-}
-
 export async function fetchDomain ({ domainId }: { domainId: string }): Promise<Domain> {
   const domain = await domainCollection.findOne({ id: domainId })
   if (domain == null) {
@@ -85,6 +28,28 @@ export async function fetchDomain ({ domainId }: { domainId: string }): Promise<
   }
 
   return domain
+}
+
+export async function addOrUpdateDomainMember ({ domainId, userId, scopes }: { domainId: string, userId: string, scopes: string[] })
+{
+  const { matchedCount: matchedUser } = await userCollection.updateOne(
+    { id: userId },
+    scopes.length === 0 ? 
+      { $unset: { [`scopes.${domainId}`]: 1 }} :
+      { $set: { [`scopes.${domainId}`]: scopes } });
+
+  if (matchedUser === 0) throw new NotFoundError('User not found')
+
+  const { matchedCount: matchedDomain } = await domainCollection.updateOne(
+    { id: domainId },
+    scopes.length === 0 ? 
+      { $pull: { members: userId } } :
+      { $addToSet: { members: userId } });
+
+  if (matchedDomain === 0) 
+    throw new NotFoundError('Domain not found')
+
+  await deleteCache({ key: `${USER_CACHE_KEY}:${userId}` })
 }
 
 export async function fetchDomainMembers ({ domainId }: { domainId: string }): Promise<DomainMembers> {
@@ -97,7 +62,7 @@ export async function fetchDomainMembers ({ domainId }: { domainId: string }): P
         foreignField: 'id',
         as: 'members',
         pipeline: [
-          { $project: { username: 1, name: 1, id: 1 } }
+          { $project: { username: 1, name: 1, id: 1, [`scopes.${domainId}`]: 1 } }
         ]
       }
     }

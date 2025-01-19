@@ -1,0 +1,37 @@
+<h1>login</h1>
+
+<div class='space-y-2'>
+  <input type="text" id="username" class='input' placeholder="username"> <br>
+  <input type="text" id="password" class='input' placeholder="password"> <br>
+
+  <button id="login" class='btn btn-sm'>login</button>
+</div>
+
+
+<script>
+  // login
+  document.getElementById('login').onclick = async _ => {
+
+    console.log('login');
+
+    const body = {
+      usernameOrEmail: document.getElementById('username').value,
+      password: document.getElementById('password').value,
+    };
+
+    if (!body.usernameOrEmail) return alert('no username or email');
+    if (!body.password) return alert('no password');
+
+    const options = {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body)
+    };
+
+    await betterFetch('/v1/sessions/', options)
+      .then(_ => document.location.href = '/contests')
+  }
+</script>
+

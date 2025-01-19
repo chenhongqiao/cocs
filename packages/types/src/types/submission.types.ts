@@ -16,6 +16,7 @@ export const NewSubmissionSchema = Type.Object({
   language: Type.Enum(SubmissionLang),
   source: Type.String()
 }, { additionalProperties: false })
+
 export type NewSubmission = Static<typeof NewSubmissionSchema>
 
 const BaseSubmissionSchema = Type.Object({
@@ -24,10 +25,9 @@ const BaseSubmissionSchema = Type.Object({
 
   id: Type.String(),
   problemId: Type.String(),
-  domainId: Type.String(),
-  contestId: Type.Optional(Type.String()),
   teamId: Type.Optional(Type.String()),
   userId: Type.String(),
+  contestId: Type.String(),
   createdAt: Type.Number()
 })
 
@@ -39,8 +39,6 @@ const GradingSubmissionSchema = Type.Intersect([BaseSubmissionSchema, Type.Objec
   status: Type.Literal(SubmissionStatus.Grading),
   gradedCases: Type.Number(),
   testcases: Type.Array(Type.Object({
-    points: Type.Number(),
-    score: Type.Optional(Type.Number()),
     result: Type.Optional(GradingResultSchema)
   }))
 })])
@@ -57,13 +55,19 @@ const TerminatedSubmissionSchema = Type.Intersect([BaseSubmissionSchema, Type.Ob
 
 const GradedSubmissionSchema = Type.Intersect([BaseSubmissionSchema, Type.Object({
   status: Type.Literal(SubmissionStatus.Graded),
+  log: Type.Optional(Type.String()),
   score: Type.Number(),
+  penalty: Type.Number(),
   testcases: Type.Array(Type.Object({
-    points: Type.Number(),
-    score: Type.Number(),
     result: GradingResultSchema
   }))
 })])
 
-export const SubmissionSchema = Type.Intersect([Type.Union([CompilingSubmissionSchema, GradingSubmissionSchema, GradedSubmissionSchema, CompileFailedSubmissionSchema, TerminatedSubmissionSchema])])
+export const SubmissionSchema = Type.Intersect([Type.Union([
+  CompilingSubmissionSchema, 
+  GradingSubmissionSchema,
+  GradedSubmissionSchema, 
+  CompileFailedSubmissionSchema,
+  TerminatedSubmissionSchema
+])])
 export type Submission = Static<typeof SubmissionSchema>

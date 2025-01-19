@@ -1,4 +1,4 @@
-import { type FastifyRequest, type FastifyReply } from 'fastify'
+import { type FastifyRequest, type FastifyReply } from 'fastify' /*=*/
 import { fetchContest } from '../services/contest.services.js'
 import { requestParameter } from '../utils/auth.utils.js'
 import { contestIdByPath } from '../services/path.services.js'
@@ -8,6 +8,7 @@ import { contestIdByPath } from '../services/path.services.js'
  * - Request.params must have contest ID.
  */
 export async function contestInfoHook (request: FastifyRequest, reply: FastifyReply): Promise<void> {
+
   const contestId = requestParameter(request, 'contestId')
   try {
     requestParameter(request, 'domainId')

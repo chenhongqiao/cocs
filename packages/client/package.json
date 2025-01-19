@@ -1,0 +1,26 @@
+{
+  "name": "@argoncs/client",
+  "version": "0.0.1",
+  "license": "AGPL-3.0",
+  "main": "./src/start.js",
+  "repository": "github:chenhongqiao/argon",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "yarn build && node start.js",
+    "build": "node build.js && yarn style",
+    "style": "yarn run tailwindcss -i ./styles/app.css -o ./build/output.css"
+  },
+  "dependencies": {
+    "@fastify/static": "^8.0.2",
+    "@tailwindcss/aspect-ratio": "^0.4.2",
+    "@tailwindcss/forms": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.15",
+    "autoprefixer": "^10.4.20",
+    "fastify": "^5.0.0",
+    "postcss-import": "^16.1.0",
+    "tailwindcss": "^3.4.14"
+  }
+}
